@@ -1,8 +1,12 @@
+'use strict'
+
 console.log("background is running!")
 
 let list = [];
-let closed = [];    // domians
-let views = {};     // domain: count
+let time;
+let closed = [];
+let views = {};
+
 views.add = function (site) {
     if (this[site.domain]) this[site.domain] = this[site.domain] + 1;
     else this[site.domain] = 1;
@@ -12,18 +16,36 @@ views.getCount = function(domain) {
     else return this[domain];
 }
 
-function loadSitesList () {
-    axios.get("http://www.softomate.net/ext/employees/list.json")
-    .then(resp => {
-        list = resp.data;
+function updateList (loadedList) {
+    console.log('list: ' + list)
+    for (let newSite of loadedList) {
+        let exising = list.find(function(site){
+            return site.name === newSite.name
+        })
+        if (!exising) list.push(newSite)
+    }    
+    chrome.storage.sync.set({list, time: Date.now()})
+}
+
+function loadSites () {
+    // axios.get("http://www.softomate.net/ext/employees/list.json")
+    axios.get("http://localhost:5000/list.json")
+    .then((resp) => {
+        let loadedList = resp.data;
+        updateList(loadedList)        
     })
     .catch(err => {
         console.error(err)
     })
 }
 
-loadSitesList();
-setInterval(loadSitesList, 60*60*1000);
+const storageGet = function (keys) {
+    return new Promise((resolve, reject) => {
+        chrome.storage.sync.get(keys, function(result) {
+            resolve(result)
+        });
+    })    
+}
 
 chrome.runtime.onMessage.addListener( (message, sender, sendResp) => {    
     switch (message.type) {
@@ -48,3 +70,31 @@ chrome.runtime.onMessage.addListener( (message, sender, sendResp) => {
             break;
     }    
 })
+
+let hourMs = 1000 * 60 * 60;
+storageGet(['list', 'time'])
+    .then(result => {
+        console.log(result)       
+        
+        if (!result.time) {
+            loadSites();
+            setInterval(loadSites, hourMs);
+        } else {
+            let now = Date.now();
+            let timeout = now - time;
+            console.log('timeout: ' + timeout)
+            if (timeout >= hourMs) {
+                loadSites();
+                setInterval(loadSites, hourMs);
+            }
+            else {
+                // setTimeout(()=>{
+                //     setInterval(()=>{loadSites(list)}, hourMs);
+                // }, timeout)
+                setTimeout(function(){
+                    setInterval(loadSites, hourMs);
+                }, hourMs-timeout)
+            }
+        }
+    })
+    .catch(console.error);
