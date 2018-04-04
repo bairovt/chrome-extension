@@ -1,8 +1,5 @@
 'use strict'
 
-chrome.storage.sync.get(['list'], function(items) {
-    console.log(items);
-  });
 
 chrome.runtime.sendMessage({
         type: 'get_matching_site',

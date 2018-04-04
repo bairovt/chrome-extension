@@ -3,8 +3,6 @@
 console.log("background is running!")
 
 let list = [];
-let time;
-let closed = [];
 let views = {};
 
 views.add = function (site) {
@@ -19,7 +17,7 @@ views.getCount = function(domain) {
 function updateList (loadedList) {    
     for (let newSite of loadedList) {
         let exising = list.find(function(site){
-            return site.name === newSite.name
+            return site.domain === newSite.domain
         })
         if (!exising) list.push(newSite)
     }    
@@ -31,7 +29,7 @@ function loadSites () {
     axios.get("http://localhost:5000/list.json")
     .then((resp) => {
         let loadedList = resp.data;
-        updateList(loadedList)        
+        updateList(loadedList)
     })
     .catch(err => {
         console.error(err)
@@ -52,8 +50,7 @@ chrome.runtime.onMessage.addListener( (message, sender, sendResp) => {
             let matchingSite = list.find(function (site) {
                 return message.hostname.includes(site.domain)
             });            
-            if (matchingSite && !closed.includes(matchingSite.domain) 
-                && views.getCount(matchingSite.domain) < 3) 
+            if (matchingSite && !matchingSite.closed && views.getCount(matchingSite.domain) < 3)
             {
                 views.add(matchingSite);
                 sendResp(matchingSite);
@@ -61,8 +58,10 @@ chrome.runtime.onMessage.addListener( (message, sender, sendResp) => {
                 sendResp(null);
             }            
             break;
-        case 'closed':
-            closed.push(message.domain)
+        case 'closed':             
+            let i = list.findIndex((site) => site.domain === message.domain);
+            list[i].closed = true;
+            chrome.storage.sync.set({list})
             break;
         case 'get_list':
             sendResp(list)
@@ -70,23 +69,26 @@ chrome.runtime.onMessage.addListener( (message, sender, sendResp) => {
     }    
 })
 
-let hourMs =  2 * 60 * 1000;
+function loadSitesAndSetInterval () {
+    loadSites();
+    setInterval(loadSites, hourMs);
+}
+
+let hourMs =  1 * 60 * 1000;
 storageGet(['list', 'time'])
     .then(result => {        
         if (!result.time) {
-            loadSites();
-            setInterval(loadSites, hourMs);
+            loadSitesAndSetInterval();
         } else {
             let now = Date.now();
             let timeout = now - result.time;            
             if (timeout >= hourMs) {
-                loadSites();
-                setInterval(loadSites, hourMs);
+                loadSitesAndSetInterval();
             }
             else {
                 list = result.list;
                 setTimeout(function(){
-                    setInterval(loadSites, hourMs);
+                    loadSitesAndSetInterval();
                 }, hourMs-timeout)
             }
         }
