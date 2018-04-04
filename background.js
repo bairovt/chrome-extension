@@ -16,8 +16,7 @@ views.getCount = function(domain) {
     else return this[domain];
 }
 
-function updateList (loadedList) {
-    console.log('list: ' + list)
+function updateList (loadedList) {    
     for (let newSite of loadedList) {
         let exising = list.find(function(site){
             return site.name === newSite.name
@@ -71,26 +70,21 @@ chrome.runtime.onMessage.addListener( (message, sender, sendResp) => {
     }    
 })
 
-let hourMs = 1000 * 60 * 60;
+let hourMs =  2 * 60 * 1000;
 storageGet(['list', 'time'])
-    .then(result => {
-        console.log(result)       
-        
+    .then(result => {        
         if (!result.time) {
             loadSites();
             setInterval(loadSites, hourMs);
         } else {
             let now = Date.now();
-            let timeout = now - time;
-            console.log('timeout: ' + timeout)
+            let timeout = now - result.time;            
             if (timeout >= hourMs) {
                 loadSites();
                 setInterval(loadSites, hourMs);
             }
             else {
-                // setTimeout(()=>{
-                //     setInterval(()=>{loadSites(list)}, hourMs);
-                // }, timeout)
+                list = result.list;
                 setTimeout(function(){
                     setInterval(loadSites, hourMs);
                 }, hourMs-timeout)

@@ -13,13 +13,13 @@
         "storage"
     ],
     "web_accessible_resources": [        
-        "js/axios.min.js",
-        "css/style.css"
+        "js/axios.min.js"        
     ],
     "content_scripts": [
         {
             "matches": ["<all_urls>"],
-            "js": ["content.js"]
+            "js": ["content.js"],
+            "css": ["css/style.css"]
         }
     ],
     "background": {

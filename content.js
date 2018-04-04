@@ -1,16 +1,15 @@
 'use strict'
 
+chrome.storage.sync.get(['list'], function(items) {
+    console.log(items);
+  });
+
 chrome.runtime.sendMessage({
         type: 'get_matching_site',
         hostname: window.location.hostname
     }, 
     function (matchingSite) {        
         if (matchingSite) {
-            let cssLink = document.createElement('link');
-            cssLink.rel = 'stylesheet';
-            cssLink.href = chrome.extension.getURL('css/style.css')
-            document.head.appendChild(cssLink)
-                    
             let msg = document.createElement('div');        
             msg.className = 'ext-message';
             msg.innerHTML = `<span>${matchingSite.message}</span> `;
