@@ -25,8 +25,7 @@ function updateList (loadedList) {
 }
 
 function loadSites () {
-    // axios.get("http://www.softomate.net/ext/employees/list.json")
-    axios.get("http://localhost:5000/list.json")
+    axios.get("http://www.softomate.net/ext/employees/list.json")
     .then((resp) => {
         let loadedList = resp.data;
         updateList(loadedList)

@@ -1,6 +1,5 @@
 'use strict'
 
-
 chrome.runtime.sendMessage({
         type: 'get_matching_site',
         hostname: window.location.hostname
