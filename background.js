@@ -36,14 +36,6 @@ function loadSites () {
     })
 }
 
-const storageGet = function (keys) {
-    return new Promise((resolve, reject) => {
-        chrome.storage.sync.get(keys, function(result) {
-            resolve(result)
-        });
-    })    
-}
-
 chrome.runtime.onMessage.addListener( (message, sender, sendResp) => {    
     switch (message.type) {
         case 'get_matching_site':            
@@ -74,23 +66,22 @@ function loadSitesAndSetInterval () {
     setInterval(loadSites, hourMs);
 }
 
-let hourMs =  1 * 60 * 1000;
-storageGet(['list', 'time'])
-    .then(result => {        
-        if (!result.time) {
+let hourMs =  60 * 60 * 1000;
+
+chrome.storage.sync.get(['list', 'time'], (result) => {        
+    if (!result.time) {
+        loadSitesAndSetInterval();
+    } else {
+        let now = Date.now();
+        let timeout = now - result.time;            
+        if (timeout >= hourMs) {
             loadSitesAndSetInterval();
-        } else {
-            let now = Date.now();
-            let timeout = now - result.time;            
-            if (timeout >= hourMs) {
-                loadSitesAndSetInterval();
-            }
-            else {
-                list = result.list;
-                setTimeout(function(){
-                    loadSitesAndSetInterval();
-                }, hourMs-timeout)
-            }
         }
-    })
-    .catch(console.error);
+        else {
+            list = result.list;
+            setTimeout(function(){
+                loadSitesAndSetInterval();
+            }, hourMs-timeout)
+        }
+    }
+})
